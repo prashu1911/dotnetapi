@@ -4,25 +4,23 @@ name: Trigger auto deployment for dotnetsample
 on:
   # Automatically trigger it when detected changes in repo
   push:
-    branches: 
-      [ main ]
+    branches: [ main ]
     paths:
-    - '**'
-    - '.github/workflows/dotnetsample-AutoDeployTrigger-b949578d-853f-420b-a125-16616d172648.yml'
-
-  # Allow manual trigger 
-  workflow_dispatch:      
+      - '**'
+      - '.github/workflows/dotnetsample-AutoDeployTrigger-b949578d-853f-420b-a125-16616d172648.yml'
+  # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    permissions: 
-      id-token: write #This is required for requesting the OIDC JWT Token
-      contents: read #Required when GH token is used to authenticate with private repo
-
+    permissions:
+      id-token: write # This is required for requesting the OIDC JWT Token
+      contents: read # Required when GH token is used to authenticate with private repo
+    
     steps:
       - name: Checkout to the branch
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4  # Updated to latest version
 
       - name: Azure Login
         uses: azure/login@v2
@@ -31,19 +29,14 @@ jobs:
           tenant-id: ${{ secrets.DOTNETSAMPLE_AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.DOTNETSAMPLE_AZURE_SUBSCRIPTION_ID }}
 
-      - name: Build and push container image to registry
+      - name: Build and deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v2
         with:
           appSourcePath: ${{ github.workspace }}
-          _dockerfilePathKey_: _dockerfilePath_
-          _targetLabelKey_: _targetLabel_
-          registryUrl: 
+          # No dockerfilePath needed for source-to-cloud deployment
+          registryUrl: ${{ secrets.DOTNETSAMPLE_REGISTRY_URL }}  # Your ACR URL
           registryUsername: ${{ secrets.DOTNETSAMPLE_REGISTRY_USERNAME }}
           registryPassword: ${{ secrets.DOTNETSAMPLE_REGISTRY_PASSWORD }}
           containerAppName: dotnetsample
           resourceGroup: one_Piece
-          imageToBuild: default/[parameters('containerAppName')]:${{ github.sha }}
-          _buildArgumentsKey_: |
-            _buildArgumentsValues_
-
-
+          # For source-to-cloud, the action will auto-detect and build your .NET app
